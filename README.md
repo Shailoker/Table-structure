@@ -1,75 +1,178 @@
 # Editable Data Table
 
-A high-performance editable data table built with React, TanStack Table, and TanStack Virtual.
+A fast and scalable editable data table built with React, TypeScript, and the TanStack ecosystem.
+
+The main goal of this project was to build a table that still feels smooth and responsive even when working with large datasets (10,000+ rows), while supporting inline editing, filtering, sorting, and virtualization.
+
+---
 
 ## Features
 
-- Inline editing of text and numeric fields with per-row Save / Cancel / Undo
-- Handles 10,000+ rows via row virtualization (TanStack Virtual)
-- Pagination as a fallback rendering mode (toggle in toolbar)
-- Multi-column sort (asc/desc/none toggle)
-- Per-column text and numeric filtering, plus Clear Filters
-- Unsaved-change tracking with row highlight + `beforeunload` prompt
-- Export visible (filtered) rows to CSV
-- Context-based state management for the table data
+- Inline editing for text and numeric fields
+- Row-level Save, Cancel, and Undo functionality
+- Handles large datasets efficiently using virtualization
+- Optional pagination mode
+- Multi-column sorting
+- Text and numeric filtering
+- CSV export for visible rows
+- Unsaved changes tracking
+- Browser refresh / tab close protection
+- Centralized state management using Context + Reducer
 
-## Stack
+---
 
-- React 19 + TypeScript
-- TanStack Router (route: `/`)
-- TanStack Table v8 (sort, filter, pagination model)
-- TanStack Virtual (windowed rendering)
-- Tailwind CSS + shadcn/ui primitives
+## Tech Stack
 
-## Run
+- React 19
+- TypeScript
+- TanStack Table v8
+- TanStack Virtual
+- TanStack Router
+- Tailwind CSS
+- shadcn/ui
 
-```
+---
+
+# Getting Started
+
+## Install dependencies
+
+```bash
 npm install
+```
+
+## Run the project
+
+```bash
 npm run dev
 ```
 
-## Deploy to Vercel
-
-This app uses [TanStack Start](https://tanstack.com/start) with the [Nitro](https://nitro.build) adapter (required for Vercel). Push to your connected Git repo and redeploy, or run `npx vercel --prod`.
-
-In the Vercel project settings, use the defaults: **Build Command** `npm run build`, leave **Output Directory** empty (do not set `dist` or `dist/client`). Vercel detects TanStack Start and uses Nitro’s `.vercel/output` automatically.
-
-## Approach
-
-### Data layer (`src/context/`)
-
-- **`tableReducer`**: Immutable updates via `useReducer`. Row lookups use `id - 1` (O(1)) because generated ids are contiguous (`src/lib/personRowIndex.ts`).
-- **`TableProvider`**: Single source of truth for rows, dirty set, and undo snapshots. Updates copy only the changed row slot (`rows.slice()` + index write), skipping no-op patches.
-- **API**: `isRowDirty(id)` stable callback for memoized row components.
-
-### Table UI (`src/components/data-table/`)
-
-- **Stable columns** (`columns.tsx` + `columnCells.tsx`): Column definitions never depend on draft state, so typing in a cell does not rebuild the entire column model.
-- **`EditingProvider`**: Draft and `editingId` isolated from TanStack Table config.
-- **`useDataTable`**: `useDeferredValue` on sort/filter state so 10k-row filter/sort work stays off the critical input path.
-- **Virtual rows**: `DataTableRow` is `memo`’d with a custom comparator (row reference, dirty flag, layout only).
-- **Virtual scroll**: TanStack Virtual with fixed row height, overscan, and ~20–40 DOM rows for 10k data. `observeScrollElementRect` prevents a 0px viewport (which would mount no rows).
-- **Async dataset load**: 10k rows are generated in 500-row chunks so the UI stays responsive (`generatePeopleAsync`).
-
-### Editing flow
-
-- Save commits draft through context (original captured on first save). Cancel drops draft. Undo restores the pre-save snapshot.
-
-### Filtering / sorting / export
-
-- TanStack Table row models; numeric filters use `>=` lower bound. CSV exports visible (filtered or paginated) rows.
-
-## Tests
+## Run tests
 
 ```bash
 npm test
 ```
 
-`VirtualTableBody.test.tsx` verifies that with 10,000 records, the DOM contains far fewer than 500 row nodes (virtual window only).
+---
 
-## Known limitations
+# Deployment
 
-- Numeric filters are a simple lower-bound (`>= value`) instead of a full range UI.
-- Department is a free-text input in edit mode rather than a typed select.
-- Data is in-memory only; there is no backend persistence.
-- `beforeunload` cannot intercept in-app route changes, only tab close / reload.
+This project is configured using TanStack Start with the Nitro adapter, which makes deployment on Vercel straightforward.
+
+```bash
+npx vercel --prod
+```
+
+Recommended Vercel settings:
+
+- Build Command: `npm run build`
+- Output Directory: leave empty
+
+Nitro automatically generates the required `.vercel/output` files.
+
+---
+
+# Project Overview
+
+## State Management
+
+The table data is managed using a reducer-based architecture inside a React Context provider.
+
+A few implementation details:
+
+- Rows are updated immutably
+- Only modified rows are replaced
+- Dirty rows are tracked separately
+- Undo snapshots are stored for recovery
+
+The provider acts as the single source of truth for:
+
+- table rows
+- edit state
+- dirty tracking
+- undo history
+
+---
+
+## Performance Optimizations
+
+The biggest focus of the project was performance with large datasets.
+
+### Virtualization
+
+Instead of rendering all 10,000 rows into the DOM, only the visible rows are mounted.
+
+This keeps scrolling smooth and avoids unnecessary DOM overhead.
+
+### Stable Column Definitions
+
+Column definitions are kept stable so typing in a cell does not rebuild the entire table configuration.
+
+### Deferred Filtering & Sorting
+
+Sorting and filtering operations are deferred to avoid blocking user input during heavy computations.
+
+### Memoized Rows
+
+Rows are memoized to minimize unnecessary re-renders while editing or scrolling.
+
+---
+
+# Editing Flow
+
+Each row has its own editing lifecycle:
+
+- Edit inline
+- Save changes
+- Cancel changes
+- Undo saved edits
+
+Unsaved changes are tracked automatically, and users are warned before refreshing or closing the tab.
+
+---
+
+# CSV Export
+
+The export feature downloads only the currently visible rows.
+
+This includes:
+
+- filtered rows
+- paginated rows
+- sorted rows
+
+---
+
+# Testing
+
+The project includes tests for virtualization behavior.
+
+Example:
+
+- ensuring that the DOM only renders a small subset of rows even when the dataset contains 10,000 records
+
+---
+
+# Current Limitations
+
+Some areas that can still be improved:
+
+- Numeric filtering currently supports only lower-bound filtering (`>=`)
+- Department editing is still a free-text field
+- Data is stored in memory only
+- `beforeunload` protection does not block internal route navigation
+
+---
+
+# Possible Improvements
+
+A few ideas for future enhancements:
+
+- Backend persistence
+- Server-side pagination
+- Infinite scrolling
+- Column resizing and reordering
+- Keyboard navigation support
+- Row selection and bulk actions
+- Advanced numeric range filters
+```
