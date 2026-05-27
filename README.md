@@ -28,6 +28,12 @@ npm install
 npm run dev
 ```
 
+## Deploy to Vercel
+
+This app uses [TanStack Start](https://tanstack.com/start) with the [Nitro](https://nitro.build) adapter (required for Vercel). Push to your connected Git repo and redeploy, or run `npx vercel --prod`.
+
+In the Vercel project settings, use the defaults: **Build Command** `npm run build`, leave **Output Directory** empty (do not set `dist` or `dist/client`). Vercel detects TanStack Start and uses Nitro’s `.vercel/output` automatically.
+
 ## Approach
 
 ### Data layer (`src/context/`)
